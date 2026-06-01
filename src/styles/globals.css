@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #0F3D2E;
+    --color-primary-light: #1a5c44;
+    --color-accent: #C8A96B;
+    --color-accent-light: #d4bc85;
+    --color-bg-dark: #111111;
+    --color-bg-light: #F8F6F2;
+    --color-text-secondary: #5F6368;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-bg-light);
+    color: var(--color-bg-dark);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    @apply antialiased text-base;
+  }
+
+  /* Dark mode settings */
+  html.dark body {
+    background-color: var(--color-bg-dark);
+    color: var(--color-bg-light);
+  }
+
+  /* Selection highlight */
+  ::selection {
+    background-color: rgba(200, 169, 107, 0.3); /* Muted gold transparent */
+    color: var(--color-primary);
+  }
+
+  html.dark ::selection {
+    background-color: rgba(200, 169, 107, 0.4);
+    color: #ffffff;
+  }
+
+  /* Scrollbar configuration */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-accent);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent-light);
+  }
+
+  /* Headings general setup */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-bold text-primary;
+  }
+
+  html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6 {
+    @apply text-accent;
+  }
+}
+
+@layer utilities {
+  .transition-base {
+    transition: all 0.2s ease;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      #f0f0f0 25%,
+      #e0e0e0 50%,
+      #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}

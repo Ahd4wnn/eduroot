@@ -1,0 +1,1 @@
+-- Session 04: Auth handled entirely by Supabase. No additional schema.
