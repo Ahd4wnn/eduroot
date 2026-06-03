@@ -1,1 +1,0 @@
-# Certificate database model placeholder
