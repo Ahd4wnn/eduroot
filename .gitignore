@@ -16,7 +16,6 @@ env/
 ENV/
 bin/
 include/
-lib/
 share/
 pyvenv.cfg
 
