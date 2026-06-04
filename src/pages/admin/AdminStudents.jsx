@@ -17,10 +17,12 @@ import {
   Circle,
   ChevronLeft,
   ChevronRight,
-  Filter
+  Filter,
+  Mail
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
+import api from '../../lib/api'
 import AdminSidebar from '../../components/admin/AdminSidebar'
 
 export function AdminStudents() {
@@ -244,7 +246,26 @@ export function AdminStudents() {
     }
   }
 
+  const handleSendCertificate = async (row) => {
+    const note = prompt(
+      'Optional note to include in the email (leave blank for none):'
+    )
+    if (note === null) return   // user cancelled
+
+    try {
+      await api.post('/api/v1/email/send-certificate', {
+        user_id:  row.user_id,
+        course_id: row.course_id,
+        note:     note || ''
+      })
+      toast.success(`Certificate email sent to ${row.full_name}!`)
+    } catch {
+      toast.error('Failed to send. Check backend logs.')
+    }
+  }
+
   // Category Theme Utilities
+
   const getCategoryBadge = (category) => {
     switch (category) {
       case 'digital-marketing':
@@ -378,8 +399,19 @@ export function AdminStudents() {
             >
               <Eye className="w-4 h-4" />
             </button>
+
+            <button
+              type="button"
+              onClick={() => handleSendCertificate(row.original)}
+              disabled={row.original.progress_pct < 100}
+              title={row.original.progress_pct < 100 ? 'Student must complete the course first' : 'Send certificate email'}
+              className="p-1.5 rounded-lg text-[#C8A96B] hover:bg-[#C8A96B]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <Mail size={16} />
+            </button>
           </div>
         )
+
       }
     }
   ], [expandedRows])

@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
-from app.routers import health, courses, enrollments, admin
+from app.routers import health, courses, enrollments, admin, email
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -60,6 +60,7 @@ app.include_router(health.router)
 app.include_router(courses.router, prefix="/api/v1")
 app.include_router(enrollments.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
+app.include_router(email.router, prefix="/api/v1")
 
 @app.get("/")
 async def root():

@@ -1,0 +1,1 @@
+-- Session 08.6: No schema changes.

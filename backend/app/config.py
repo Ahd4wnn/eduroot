@@ -9,8 +9,15 @@ class Settings(BaseSettings):
     razorpay_key_secret: str
     frontend_url: str = "http://localhost:5173"
     environment: str = "development"
+    brevo_smtp_host: str = "smtp-relay.brevo.com"
+    brevo_smtp_port: int = 587
+    brevo_smtp_user: str = ""
+    brevo_smtp_pass: str = ""
+    email_from: str = "noreply@eduroot.online"
+    email_from_name: str = "eduroot"
 
     class Config:
+
         env_file = ".env"
         case_sensitive = False
 
