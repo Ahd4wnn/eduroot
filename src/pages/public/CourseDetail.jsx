@@ -38,7 +38,11 @@ export function CourseDetail() {
   const { openCheckout } = useRazorpay()
 
   const handleEnroll = async () => {
-    if (!session) {
+    // Wait for auth to finish loading — never redirect during loading
+    if (authLoading || session === undefined) return
+
+    // Only redirect if we are certain there is no session
+    if (session === null) {
       navigate(`/login?redirect=/courses/${slug}`)
       return
     }
@@ -163,14 +167,15 @@ export function CourseDetail() {
       }
     }
 
-    if (authLoading) return          // wait for auth before checking enrollment
-    if (!session) {                  // not logged in — skip check
+    if (authLoading || session === undefined) return
+    if (!session) {
       setIsEnrolled(false)
       setEnrollmentLoading(false)
       return
     }
+    if (!course?.id) return
     checkEnrollment()
-  }, [session, authLoading, course?.id])
+  }, [authLoading, session, course?.id])
 
   // Open the first syllabus module by default on load
   useEffect(() => {
@@ -545,19 +550,27 @@ export function CourseDetail() {
                     // Not enrolled → enroll button
                     <button
                       onClick={handleEnroll}
-                      disabled={enrolling}
-                      className="w-full py-3 rounded-xl bg-[#0F3D2E] text-white text-sm font-semibold hover:bg-[#1a5c44] transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                      disabled={enrolling || authLoading || session === undefined}
+                      className={`w-full py-3 rounded-xl text-sm font-semibold
+                        transition-colors duration-200 flex items-center justify-center gap-2
+                        ${authLoading || session === undefined
+                          ? 'bg-gray-100 text-gray-400 cursor-wait'
+                          : 'bg-[#0F3D2E] text-white hover:bg-[#1a5c44]'
+                        }
+                        disabled:opacity-60 disabled:cursor-not-allowed`}
                     >
                       {enrolling ? (
                         <>
                           <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                           Enrolling...
                         </>
+                      ) : authLoading || session === undefined ? (
+                        'Loading...'
+                      ) : isEnrolled ? (
+                        'Continue Learning →'
                       ) : session ? (
-                        // Logged in — show price or "Enroll now"
-                        `Enroll Now — ₹${course.price?.toLocaleString('en-IN')}`
+                        `Enroll Now — ₹${course?.price?.toLocaleString('en-IN')}`
                       ) : (
-                        // Not logged in — prompt to sign up
                         'Sign Up to Enroll'
                       )}
                     </button>
