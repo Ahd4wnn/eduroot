@@ -101,7 +101,7 @@ export function CourseDetail() {
                   .select('id')
                   .eq('referred_id', session.user.id)
                   .eq('status', 'enrolled')
-                  .single()
+                  .maybeSingle()
 
                 if (referral && !hasBadge('community-builder')) {
                   const badge = await awardBadge('community-builder')
@@ -168,7 +168,7 @@ export function CourseDetail() {
             .select('id')
             .eq('user_id', session.user.id)
             .eq('course_id', course.id)
-            .single()
+            .maybeSingle()
 
           if (!error && data) {
             setIsEnrolled(true)

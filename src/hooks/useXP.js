@@ -43,7 +43,7 @@ export function useXP(userId) {
     if (!userId) return
 
     const [xpRes, userBadgesRes, allBadgesRes] = await Promise.all([
-      supabase.from('user_xp').select('*').eq('user_id', userId).single(),
+      supabase.from('user_xp').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('user_badges')
         .select('badge_id, earned_at')
         .eq('user_id', userId),
