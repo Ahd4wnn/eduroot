@@ -38,21 +38,22 @@ export function CourseDetail() {
   const { openCheckout } = useRazorpay()
 
   const handleEnroll = async () => {
-    // Wait for auth to finish loading — never redirect during loading
+    // Wait — do not act while auth state is still loading
     if (authLoading || session === undefined) return
 
-    // Only redirect if we are certain there is no session
+    // Confirmed not logged in — redirect to login
     if (session === null) {
       navigate(`/login?redirect=/courses/${slug}`)
       return
     }
+
+    // Already enrolled — go straight to course
     if (isEnrolled) {
       navigate(`/learn/${slug}`)
       return
     }
 
     try {
-      // Step 1: Create Razorpay order via backend
       setPaymentStage('creating')
 
       const { data } = await api.post('/api/v1/orders/create', {
@@ -61,12 +62,11 @@ export function CourseDetail() {
 
       const { order_id, amount, currency, course_title } = data
 
-      // Step 2: Dismiss loading overlay before Razorpay opens
+      // Dismiss loading before Razorpay modal opens
       setPaymentStage(null)
 
-      // Step 3: Open Razorpay checkout
       openCheckout({
-        orderId:   order_id,
+        orderId:    order_id,
         amount,
         currency,
         courseName: course_title,
@@ -124,13 +124,11 @@ export function CourseDetail() {
 
     } catch (err) {
       if (err.response?.status === 409) {
-        // Already enrolled edge case
         setIsEnrolled(true)
         setPaymentStage(null)
         navigate(`/learn/${slug}`)
         return
       }
-
       setPaymentError(
         err.response?.data?.detail || 'Failed to start checkout. Try again.'
       )
@@ -138,38 +136,26 @@ export function CourseDetail() {
     }
   }
 
-  // Verify dynamic student enrollment from Supabase table if logged in
-  useEffect(() => {
-    async function checkEnrollment() {
-      if (session?.user && course) {
-        try {
-          setEnrollmentLoading(true)
-          const { data, error } = await supabase
-            .from('enrollments')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .eq('course_id', course.id)
-            .maybeSingle()
-
-          if (!error && data) {
-            setIsEnrolled(true)
-          } else {
-            setIsEnrolled(false)
-          }
-        } catch (err) {
-          console.warn('Enrollment query returned empty. User not enrolled.')
-          setIsEnrolled(false)
-        } finally {
-          setEnrollmentLoading(false)
-        }
-      } else {
-        setEnrollmentLoading(false)
-      }
+  const checkEnrollment = async () => {
+    setEnrollmentLoading(true)
+    try {
+      const { data } = await supabase
+        .from('enrollments')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('course_id', course.id)
+        .maybeSingle()          // ← must be maybeSingle
+      setIsEnrolled(!!data)
+    } catch (err) {
+      console.error('Enrollment check failed:', err)
+    } finally {
+      setEnrollmentLoading(false)
     }
+  }
 
+  useEffect(() => {
     if (authLoading || session === undefined) return
-    if (!session) {
-      setIsEnrolled(false)
+    if (session === null) {
       setEnrollmentLoading(false)
       return
     }
