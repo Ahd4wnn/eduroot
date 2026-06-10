@@ -48,7 +48,7 @@ export function Learn() {
             )
           `)
           .eq('slug', slug)
-          .single()
+          .maybeSingle()
 
         if (courseErr || !courseData) {
           console.error(courseErr)
@@ -63,7 +63,7 @@ export function Learn() {
           .select('id')
           .eq('user_id', session.user.id)
           .eq('course_id', courseData.id)
-          .single()
+          .maybeSingle()
 
         if (enrollErr || !enrollment) {
           toast.error('You must be enrolled to view this course.')
@@ -195,7 +195,7 @@ export function Learn() {
           .select('enrolled_at')
           .eq('user_id', session.user.id)
           .eq('course_id', course.id)
-          .single()
+          .maybeSingle()
 
         if (enrollment) {
           const daysSinceEnroll = Math.floor(

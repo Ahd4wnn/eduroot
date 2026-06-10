@@ -43,7 +43,7 @@ export function Dashboard() {
           .from('profiles')
           .select('full_name, avatar_url')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (profileErr) {
           console.warn('Dashboard: Profile retrieval encountered warning:', profileErr.message)
