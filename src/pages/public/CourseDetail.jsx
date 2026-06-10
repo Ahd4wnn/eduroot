@@ -56,7 +56,7 @@ export function CourseDetail() {
       setPaymentError('')
 
       // 1. Create order on the backend
-      const response = await api.post('/orders/create', {
+      const response = await api.post('/api/v1/orders/create', {
         course_id: course.id
       })
 
@@ -74,7 +74,7 @@ export function CourseDetail() {
           try {
             setPaymentStage('verifying')
             // 3. Verify on backend
-            const verifyRes = await api.post('/orders/verify', {
+            const verifyRes = await api.post('/api/v1/orders/verify', {
               razorpay_order_id: rzpResponse.razorpay_order_id,
               razorpay_payment_id: rzpResponse.razorpay_payment_id,
               razorpay_signature: rzpResponse.razorpay_signature,
@@ -131,7 +131,7 @@ export function CourseDetail() {
           setPaymentError(errMsg)
           setPaymentStage('failed')
           try {
-            await api.post('/orders/failed', {
+            await api.post('/api/v1/orders/failed', {
               razorpay_order_id: order_id,
               error_description: errMsg
             })
