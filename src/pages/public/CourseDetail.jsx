@@ -18,7 +18,7 @@ import { useXP } from '../../hooks/useXP'
 import { showBadgeToast } from '../../components/ui/BadgeToast'
 import { useRazorpay } from '../../hooks/useRazorpay'
 import PaymentModal from '../../components/ui/PaymentModal'
-import api from '../../lib/api'
+import { api } from '../../lib/api'
 
 export function CourseDetail() {
   const { slug } = useParams()
@@ -33,127 +33,104 @@ export function CourseDetail() {
   const [openModuleId, setOpenModuleId] = useState(null)
   const [enrolling, setEnrolling] = useState(false)
   const [paymentStage, setPaymentStage] = useState(null)
-  const [paymentError, setPaymentError] = useState('')
+  const [paymentError, setPaymentError] = useState(null)
 
   const { openCheckout } = useRazorpay()
 
   const handleEnroll = async () => {
-    // No session → redirect to login, come back after
     if (!session) {
       navigate(`/login?redirect=/courses/${slug}`)
       return
     }
-
-    // Already enrolled → go to learn page
     if (isEnrolled) {
       navigate(`/learn/${slug}`)
       return
     }
 
     try {
-      setEnrolling(true)
+      // Step 1: Create Razorpay order via backend
       setPaymentStage('creating')
-      setPaymentError('')
 
-      // 1. Create order on the backend
-      const response = await api.post('/api/v1/orders/create', {
+      const { data } = await api.post('/api/v1/orders/create', {
         course_id: course.id
       })
 
-      const { order_id, amount, currency, course_title } = response.data
+      const { order_id, amount, currency, course_title } = data
 
-      // 2. Open checkout
+      // Step 2: Dismiss loading overlay before Razorpay opens
+      setPaymentStage(null)
+
+      // Step 3: Open Razorpay checkout
       openCheckout({
-        orderId: order_id,
+        orderId:   order_id,
         amount,
         currency,
         courseName: course_title,
-        userName: session.user.user_metadata?.full_name || session.user.email,
-        userEmail: session.user.email,
-        onSuccess: async (rzpResponse) => {
+        userName:   session.user.user_metadata?.full_name || '',
+        userEmail:  session.user.email,
+
+        onSuccess: async (response) => {
           try {
             setPaymentStage('verifying')
-            // 3. Verify on backend
-            const verifyRes = await api.post('/api/v1/orders/verify', {
-              razorpay_order_id: rzpResponse.razorpay_order_id,
-              razorpay_payment_id: rzpResponse.razorpay_payment_id,
-              razorpay_signature: rzpResponse.razorpay_signature,
-              course_id: course.id
+
+            await api.post('/api/v1/orders/verify', {
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature:  response.razorpay_signature,
+              course_id:           course.id,
             })
 
-            if (verifyRes.data.success) {
-              setPaymentStage('success')
-              setIsEnrolled(true)
-              toast.success("You're enrolled! Let's start learning 🎉")
+            setPaymentStage('success')
+            setIsEnrolled(true)
 
-              // Award first-enrollment badge
-              try {
-                const firstBadge = await awardBadge('first-enrollment')
-                if (firstBadge) showBadgeToast(firstBadge)
-              } catch (badgeErr) {
-                console.warn('Failed to award first-enrollment badge:', badgeErr)
-              }
+            setTimeout(() => {
+              setPaymentStage(null)
+              navigate(`/learn/${slug}`)
+            }, 2000)
 
-              // Check if referred and award community-builder
-              try {
-                const { data: referral } = await supabase
-                  .from('referrals')
-                  .select('id')
-                  .eq('referred_id', session.user.id)
-                  .eq('status', 'enrolled')
-                  .maybeSingle()
-
-                if (referral && !hasBadge('community-builder')) {
-                  const badge = await awardBadge('community-builder')
-                  if (badge) showBadgeToast(badge)
-                }
-              } catch (refErr) {
-                console.warn('Failed referral badge check:', refErr)
-              }
-
-              setTimeout(() => {
-                setPaymentStage(null)
-                navigate(`/learn/${slug}`)
-              }, 2000)
-            } else {
-              throw new Error('Verification failed')
-            }
-          } catch (verifyErr) {
-            console.error('Payment verification failed:', verifyErr)
-            const errMsg = verifyErr.response?.data?.detail || 'Verification failed. Please contact support.'
-            setPaymentError(errMsg)
+          } catch (err) {
+            setPaymentError(
+              'Payment received but enrollment failed. ' +
+              'Please contact support@eduroot.online'
+            )
             setPaymentStage('failed')
           }
         },
-        onFailure: async (rzpError) => {
-          console.error('Razorpay payment failed:', rzpError)
-          const errMsg = rzpError.description || 'Payment failed or cancelled'
-          setPaymentError(errMsg)
-          setPaymentStage('failed')
+
+        onFailure: async (error) => {
           try {
             await api.post('/api/v1/orders/failed', {
               razorpay_order_id: order_id,
-              error_description: errMsg
+              error_description: error?.description || 'Unknown error',
             })
-          } catch (failErr) {
-            console.warn('Failed to register failed order:', failErr)
+          } catch (e) {
+            // silent
           }
-        }
+
+          if (error?.description === 'Payment cancelled by user') {
+            setPaymentStage(null)
+          } else {
+            setPaymentError(
+              error?.description || 'Payment failed. Please try again.'
+            )
+            setPaymentStage('failed')
+          }
+        },
       })
 
     } catch (err) {
-      console.error('Enrollment error:', err)
       if (err.response?.status === 409) {
+        // Already enrolled edge case
         setIsEnrolled(true)
-        toast.success("You're already enrolled in this course!")
+        setPaymentStage(null)
         navigate(`/learn/${slug}`)
-      } else {
-        const errMsg = err.response?.data?.detail || 'Something went wrong. Please try again.'
-        setPaymentError(errMsg)
-        setPaymentStage('failed')
+        return
       }
-    } finally {
-      setEnrolling(false)
+
+      setPaymentError(
+        err.response?.data?.detail || 'Failed to start checkout. Try again.'
+      )
+      setPaymentStage('failed')
     }
   }
 
@@ -649,8 +626,11 @@ export function CourseDetail() {
       <PaymentModal
         stage={paymentStage}
         error={paymentError}
-        onClose={() => setPaymentStage(null)}
-        courseTitle={course.title}
+        courseTitle={course?.title}
+        onClose={() => {
+          setPaymentStage(null)
+          setPaymentError(null)
+        }}
       />
     </PageWrapper>
   )
