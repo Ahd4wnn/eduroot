@@ -42,6 +42,7 @@ api.interceptors.response.use(
       // Redirect to public login route
       window.location.href = '/login'
     }
+    // Note: 409 Conflict (e.g., already enrolled) is bypassed here so the caller can handle it.
     return Promise.reject(error)
   }
 )

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Users, BookOpen, TrendingUp, Award, ArrowRight, Edit, Loader2 } from 'lucide-react'
+import { Users, BookOpen, TrendingUp, Award, ArrowRight, Edit, Loader2, IndianRupee } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import AdminSidebar from '../../components/admin/AdminSidebar'
 import StatCard from '../../components/admin/StatCard'
@@ -11,7 +11,8 @@ export function AdminDashboard() {
     total_students: 0,
     published_courses: 0,
     total_enrollments: 0,
-    total_certificates: 0
+    total_certificates: 0,
+    total_revenue_paise: 0
   })
   const [recentEnrollments, setRecentEnrollments] = useState([])
   const [courses, setCourses] = useState([])
@@ -117,7 +118,7 @@ export function AdminDashboard() {
             className="p-6 text-left"
           >
             {/* Stats Row Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <StatCard
                 value={stats.total_students}
                 label="Total Students"
@@ -145,6 +146,13 @@ export function AdminDashboard() {
                 icon={Award}
                 color="#C8A96B"
                 index={3}
+              />
+              <StatCard
+                value={`₹${((stats.total_revenue_paise || 0) / 100).toLocaleString('en-IN')}`}
+                label="Total Revenue"
+                icon={IndianRupee}
+                color="#0F3D2E"
+                index={4}
               />
             </div>
 

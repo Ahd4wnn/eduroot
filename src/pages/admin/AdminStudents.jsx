@@ -29,6 +29,8 @@ export function AdminStudents() {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [xpLeaderboard, setXpLeaderboard] = useState([])
+  const [orders, setOrders] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState('')
@@ -85,6 +87,19 @@ export function AdminStudents() {
       } else {
         setXpLeaderboard(leadData || [])
       }
+
+      // 4. Fetch administrative orders history
+      setOrdersLoading(true)
+      const { data: ordersData, error: ordersErr } = await supabase
+        .from('admin_orders')
+        .select('*')
+
+      if (ordersErr) {
+        console.error('AdminStudents: Orders query failed:', ordersErr.message)
+      } else {
+        setOrders(ordersData || [])
+      }
+      setOrdersLoading(false)
 
     } catch (err) {
       toast.error('Failed to load students.')
@@ -690,6 +705,82 @@ export function AdminStudents() {
                 </div>
               </div>
             )}
+
+            {/* Orders History Widget */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm mx-6 mt-6 mb-8 text-left">
+              <div className="px-6 py-4 border-b border-gray-100 select-none flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#0F3D2E] font-bold">💳</span>
+                  <h2 className="text-base font-semibold text-[#111111]">
+                    Transaction & Order History
+                  </h2>
+                </div>
+                {ordersLoading && <Loader2 className="w-4 h-4 animate-spin text-[#0F3D2E]" />}
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-[#5F6368] uppercase select-none">
+                      <th className="text-left px-6 py-3 font-semibold uppercase tracking-wider">Student</th>
+                      <th className="text-left px-6 py-3 font-semibold uppercase tracking-wider">Course</th>
+                      <th className="text-left px-6 py-3 font-semibold uppercase tracking-wider">Razorpay Order ID</th>
+                      <th className="text-left px-6 py-3 font-semibold uppercase tracking-wider">Payment ID</th>
+                      <th className="text-left px-6 py-3 font-semibold uppercase tracking-wider">Amount Paid</th>
+                      <th className="text-center px-6 py-3 font-semibold uppercase tracking-wider">Status</th>
+                      <th className="text-right px-6 py-3 font-semibold uppercase tracking-wider">Paid At</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {orders.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                          No transaction orders recorded yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      orders.map((ord) => (
+                        <tr key={ord.id} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                          <td className="px-6 py-3.5 text-sm text-[#111111] font-semibold">
+                            {ord.student_name || 'Anonymous Student'}
+                          </td>
+                          <td className="px-6 py-3.5 text-sm text-[#5F6368]">
+                            {ord.course_title}
+                          </td>
+                          <td className="px-6 py-3.5 text-xs font-mono text-gray-500">
+                            {ord.razorpay_order_id || '—'}
+                          </td>
+                          <td className="px-6 py-3.5 text-xs font-mono text-gray-500">
+                            {ord.razorpay_payment_id || '—'}
+                          </td>
+                          <td className="px-6 py-3.5 text-sm text-[#0F3D2E] font-bold">
+                            ₹{((ord.amount || 0) / 100).toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-6 py-3.5 text-center">
+                            {ord.status === 'paid' ? (
+                              <span className="bg-green-50 text-green-700 border border-green-100 font-semibold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                                Paid
+                              </span>
+                            ) : ord.status === 'failed' ? (
+                              <span className="bg-red-50 text-red-700 border border-red-100 font-semibold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                Failed
+                              </span>
+                            ) : (
+                              <span className="bg-gray-100 text-gray-500 border border-gray-200 font-semibold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                {ord.status}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-3.5 text-xs text-[#5F6368] font-mono text-right">
+                            {ord.paid_at ? new Date(ord.paid_at).toLocaleString() : '—'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
           </div>
         )}
